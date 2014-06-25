@@ -211,7 +211,7 @@ public class CustomViewAbove extends ViewGroup {
 	 * @param item Item index to select
 	 */
 	public void setCurrentItem(int item) {
-		setCurrentItemInternal(item, true, false);
+		setCurrentItemInternal(item, true, true);
 	}
 
 	/**
@@ -221,7 +221,7 @@ public class CustomViewAbove extends ViewGroup {
 	 * @param smoothScroll True to smoothly scroll to the new item, false to transition immediately
 	 */
 	public void setCurrentItem(int item, boolean smoothScroll) {
-		setCurrentItemInternal(item, smoothScroll, false);
+		setCurrentItemInternal(item, smoothScroll, true);
 	}
 
 	public int getCurrentItem() {
@@ -451,24 +451,10 @@ public class CustomViewAbove extends ViewGroup {
 		velocity = Math.abs(velocity);
 		if (velocity > 0) {
 			duration = 4 * Math.round(1000 * Math.abs(distance / velocity));
-
-		} else {//Ensure that the same two menu sliding speed
-			switch (mViewBehind.getMode()) {
-                case SlidingMenu.LEFT:
-                case SlidingMenu.RIGHT:
-                    duration = MAX_SETTLE_DURATION;
-                    break;
-                case SlidingMenu.LEFT_RIGHT:
-                    if (mViewBehind.getBehindWidth() > mViewBehind.getSecondaryBehindWidth()) {
-                        duration = MAX_SETTLE_DURATION * Math.abs(dx) / mViewBehind.getBehindWidth();
-                    } else {
-                        duration = MAX_SETTLE_DURATION * Math.abs(dx) / mViewBehind.getSecondaryBehindWidth();
-                    }
-                    break;
-                default:
-                    duration = MAX_SETTLE_DURATION;
-                    break;
-            }
+		} else {
+		    final float pageDelta = (float) Math.abs(dx) / width;
+		              duration = (int) ((pageDelta + 1) * 100);
+		              duration = MAX_SETTLE_DURATION;
 		}
 		duration = Math.min(duration, MAX_SETTLE_DURATION);
 
