@@ -26,6 +26,7 @@ import android.view.ViewGroup;
 import android.view.animation.Interpolator;
 import android.widget.Scroller;
 
+import com.jeremyfeinstein.slidingmenu.lib.SlidingMenu.ESlidingMenuOpenSide;
 import com.jeremyfeinstein.slidingmenu.lib.SlidingMenu.OnClosedListener;
 import com.jeremyfeinstein.slidingmenu.lib.SlidingMenu.OnOpenedListener;
 //import com.jeremyfeinstein.slidingmenu.lib.SlidingMenu.OnCloseListener;
@@ -51,6 +52,7 @@ public class CustomViewAbove extends ViewGroup {
 	private View mContent;
 
 	private int mCurItem;
+	private ESlidingMenuOpenSide mOpenSide;
 	private Scroller mScroller;
 
 	private boolean mScrollingCacheEnabled;
@@ -122,8 +124,17 @@ public class CustomViewAbove extends ViewGroup {
 		 * necessarily complete.
 		 *
 		 * @param position Position index of the new selected page.
+		 * @param oldPosition Position index of the old selected page
 		 */
-		public void onPageSelected(int position);
+		public void onPageSelected(int position, int oldPosition);
+		
+		/**
+         * This method will be invoked when a new page becomes selected. Animation is not
+         * necessarily complete.
+         *
+         * @param position Position index of the new selected page.
+         */
+        public void onPageSelected(int position);
 
 	}
 
@@ -138,13 +149,18 @@ public class CustomViewAbove extends ViewGroup {
 			// This space for rent
 		}
 
-		public void onPageSelected(int position) {
+		public void onPageSelected(int position, int oldPosition) {
 			// This space for rent
 		}
 
 		public void onPageScrollStateChanged(int state) {
 			// This space for rent
 		}
+
+        @Override
+        public void onPageSelected(int position) {
+            // TODO Auto-generated method stub
+        }
 
 	}
 
@@ -225,10 +241,11 @@ public class CustomViewAbove extends ViewGroup {
 		item = mViewBehind.getMenuPage(item);
 
 		final boolean dispatchSelected = mCurItem != item;
+		int oldItem = mCurItem;
 		mCurItem = item;
 		final int destX = getDestScrollX(mCurItem);
 		if (dispatchSelected && mOnPageChangeListener != null) {
-			mOnPageChangeListener.onPageSelected(item);
+			mOnPageChangeListener.onPageSelected(item, oldItem);
 		}
 		if (dispatchSelected && mInternalPageChangeListener != null) {
 			mInternalPageChangeListener.onPageSelected(item);
@@ -239,6 +256,17 @@ public class CustomViewAbove extends ViewGroup {
 			completeScroll();
 			scrollTo(destX, 0);
 		}
+        switch (item) {
+            case 0:
+                mOpenSide = ESlidingMenuOpenSide.LEFT;
+                break;
+            case 2:
+                mOpenSide = ESlidingMenuOpenSide.RIGHT;
+                break;
+            default:
+                mOpenSide = ESlidingMenuOpenSide.NONE;
+                break;
+        }
 	}
 
 	/**
@@ -343,7 +371,10 @@ public class CustomViewAbove extends ViewGroup {
 		if (mViewBehind == null) {
 			return 0;
 		} else {
-			return mViewBehind.getBehindWidth();
+		    if (mOpenSide == ESlidingMenuOpenSide.RIGHT && mViewBehind.getSecondaryContent() != null) {
+	            return mViewBehind.getSecondaryBehindWidth();
+		    }
+		    return mViewBehind.getBehindWidth();
 		}
 	}
 
@@ -394,13 +425,15 @@ public class CustomViewAbove extends ViewGroup {
 		int dx = x - sx;
 		int dy = y - sy;
 		if (dx == 0 && dy == 0) {
-			completeScroll();
-			if (isMenuOpen()) {
-				if (mOpenedListener != null)
-					mOpenedListener.onOpened();
-			} else {
-				if (mClosedListener != null)
-					mClosedListener.onClosed();
+			if (!completeScroll()) {
+                if (isMenuOpen()) {
+                    if (mOpenedListener != null)
+                        mOpenedListener.onOpened(mOpenSide);
+                } else {
+                    if (mClosedListener != null)
+                        mClosedListener.onClosed(mOpenSide);
+                    mOpenSide = ESlidingMenuOpenSide.NONE;
+                }
 			}
 			return;
 		}
@@ -552,7 +585,7 @@ public class CustomViewAbove extends ViewGroup {
 		}
 	}
 
-	private void completeScroll() {
+	private boolean completeScroll() {
 		boolean needPopulate = mScrolling;
 		if (needPopulate) {
 			// Done with scroll, no longer want to cache view drawing.
@@ -567,13 +600,15 @@ public class CustomViewAbove extends ViewGroup {
 			}
 			if (isMenuOpen()) {
 				if (mOpenedListener != null)
-					mOpenedListener.onOpened();
+					mOpenedListener.onOpened(mOpenSide);
 			} else {
 				if (mClosedListener != null)
-					mClosedListener.onClosed();
+					mClosedListener.onClosed(mOpenSide);
+				mOpenSide = ESlidingMenuOpenSide.NONE;
 			}
 		}
 		mScrolling = false;
+		return needPopulate;
 	}
 
 	protected int mTouchMode = SlidingMenu.TOUCHMODE_MARGIN;
@@ -726,6 +761,13 @@ public class CustomViewAbove extends ViewGroup {
 				mLastMotionX = x;
 				float oldScrollX = getScrollX();
 				float scrollX = oldScrollX + deltaX;
+                if (mOpenSide == ESlidingMenuOpenSide.NONE && oldScrollX != scrollX) {
+                    if (oldScrollX > scrollX) {
+                        mOpenSide = ESlidingMenuOpenSide.LEFT;
+                    } else {
+                        mOpenSide = ESlidingMenuOpenSide.RIGHT;
+                    }
+                }
 				final float leftBound = getLeftBound();
 				final float rightBound = getRightBound();
 				if (scrollX < leftBound) {

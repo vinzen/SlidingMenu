@@ -64,6 +64,12 @@ public class SlidingMenu extends RelativeLayout {
 	 */
 	public static final int LEFT_RIGHT = 2;
 
+	public static enum ESlidingMenuOpenSide {
+        LEFT,
+        NONE,
+        RIGHT
+    }
+
 	private CustomViewAbove mViewAbove;
 
 	private CustomViewBehind mViewBehind;
@@ -88,7 +94,7 @@ public class SlidingMenu extends RelativeLayout {
 		/**
 		 * On open.
 		 */
-		public void onOpen();
+		public void onOpen(ESlidingMenuOpenSide pSide);
 	}
 
 	/**
@@ -107,7 +113,7 @@ public class SlidingMenu extends RelativeLayout {
 		/**
 		 * On opened.
 		 */
-		public void onOpened();
+		public void onOpened(ESlidingMenuOpenSide pSide);
 	}
 
 	/**
@@ -126,7 +132,7 @@ public class SlidingMenu extends RelativeLayout {
 		/**
 		 * On close.
 		 */
-		public void onClose();
+		public void onClose(ESlidingMenuOpenSide pSide);
 	}
 
 	/**
@@ -145,7 +151,7 @@ public class SlidingMenu extends RelativeLayout {
 		/**
 		 * On closed.
 		 */
-		public void onClosed();
+		public void onClosed(ESlidingMenuOpenSide pSide);
 	}
 
 	/**
@@ -219,15 +225,20 @@ public class SlidingMenu extends RelativeLayout {
 			public void onPageScrolled(int position, float positionOffset,
 					int positionOffsetPixels) { }
 
-			public void onPageSelected(int position) {
+			public void onPageSelected(int position, int oldPosition) {
 				if (position == POSITION_OPEN && mOpenListener != null) {
-					mOpenListener.onOpen();
+					mOpenListener.onOpen(ESlidingMenuOpenSide.LEFT);
 				} else if (position == POSITION_CLOSE && mCloseListener != null) {
-					mCloseListener.onClose();
+					mCloseListener.onClose(oldPosition == POSITION_OPEN ? ESlidingMenuOpenSide.LEFT : ESlidingMenuOpenSide.RIGHT);
 				} else if (position == POSITION_SECONDARY_OPEN && mSecondaryOpenListner != null ) {
-					mSecondaryOpenListner.onOpen();
+					mSecondaryOpenListner.onOpen(ESlidingMenuOpenSide.RIGHT);
 				}
 			}
+
+            @Override
+            public void onPageSelected(int position) {
+                onPageSelected(position, 0);
+            }
 		});
 
 		// now style everything!
